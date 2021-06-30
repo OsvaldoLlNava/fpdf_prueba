@@ -22,10 +22,10 @@ func main() {
 	col := len(data[0])
 
 	// una vez tenemos la informacion se crea un documento pdf
-	pdf := newReport()
-	pdf = image(pdf)
-	pdf = header(pdf, data[0], col)
-	pdf = table(pdf, data[1:], col)
+	pdf := newReport()              // creacion del la instancia pdf en la que se trabajara
+	pdf = image(pdf)                // le agregamos una imagen estetica al documento
+	pdf = header(pdf, data[0], col) // se le añade el header a la tabla, los nombres de los datos que tiene
+	pdf = table(pdf, data[1:], col) // se le añaden todos los datos a la tabla
 
 	if pdf.Err() {
 		log.Fatalf("Failed creating PDF report: %s\n", pdf.Error())
@@ -63,10 +63,10 @@ func path() string {
 func newReport() *gofpdf.Fpdf {
 	// la creacion del pdf es simple, y esta dado por:
 	// .New(
-	// 	"Orientacion",  esta puede ser "L" landscape (paisaje: horizontal) o  "P" portrait (retrato: vertical) "" = "P"
-	//	"Unidad de medida", esta es la unidad de medida en la que se pasaran los tamaños ("pt", "cm", "in", "mm") "" = "mm"
-	//	"Formato", esto se refiere a el formato de la hoja del pdf ("A3", "A4", "A5", "Letter", "Legal", "Tabloid") "" = "A4"
-	//	"Font", este valor es una direccion hacia un directorio para usar alguna font especifica descargada
+	// 	"orientationStr",  esta puede ser "L" landscape (paisaje: horizontal) o  "P" portrait (retrato: vertical) "" = "P"
+	//	"unitStr", esta es la unidad de medida en la que se pasaran los tamaños ("pt", "cm", "in", "mm") "" = "mm"
+	//	"sizeStr", esto se refiere a el formato de la hoja del pdf ("A3", "A4", "A5", "Letter", "Legal", "Tabloid") "" = "A4"
+	//	"fontDirStr", este valor es una direccion hacia un directorio para usar alguna font especifica descargada
 	// )
 	// Los valores vacios tienen asignados una opcion default cada uno
 	pdf := gofpdf.New("L", "mm", "Letter", "")
