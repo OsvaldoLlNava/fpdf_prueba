@@ -19,11 +19,13 @@ func main() {
 	// la funcion path() solo es un pequeño intermedio para obtener el path de os.Args
 	data := loadCSV(path())
 
+	col := len(data[0])
+
 	// una vez tenemos la informacion se crea un documento pdf
 	pdf := newReport()
 	pdf = image(pdf)
-	pdf = header(pdf, data[0])
-	pdf = table(pdf, data[1:])
+	pdf = header(pdf, data[0], col)
+	pdf = table(pdf, data[1:], col)
 
 	if pdf.Err() {
 		log.Fatalf("Failed creating PDF report: %s\n", pdf.Error())
@@ -95,44 +97,34 @@ func newReport() *gofpdf.Fpdf {
 
 }
 
-func header(pdf *gofpdf.Fpdf, hdr []string) *gofpdf.Fpdf {
+func header(pdf *gofpdf.Fpdf, hdr []string, columnas int) *gofpdf.Fpdf {
 	pdf.SetFont("Times", "B", 16)
 	pdf.SetFillColor(240, 240, 240)
-	for i, str := range hdr {
+	pageWidth, _ := pdf.GetPageSize()
+	cellWidth := (pageWidth - 20) / float64(columnas)
+	for _, str := range hdr {
 
-		if i != 8 {
-			pdf.CellFormat(20, 7, str, "1", 0, "C", false, 0, "")
-		} else {
-			pdf.CellFormat(45, 7, str, "1", 0, "C", false, 0, "")
-		}
+		pdf.CellFormat(cellWidth, 7, str, "1", 0, "C", false, 0, "")
 	}
 	pdf.Ln(-1)
 	return pdf
 }
 
-func table(pdf *gofpdf.Fpdf, tbl [][]string) *gofpdf.Fpdf {
+func table(pdf *gofpdf.Fpdf, tbl [][]string, columnas int) *gofpdf.Fpdf {
 	pdf.SetFont("Times", "", 16)
 	pdf.SetFillColor(255, 255, 255)
 
-	// en este caso la variable align es para establecer multiples alinamientos en la tabla (dependiendo que casilla sea)
-	// esto es una forma muy estricta conforme a el numero de columnas,
-	// align debe de tener elementos igual o mayor al numero de columnas que tendra la tabla
-	// en caso de cities que todo es centrado, no se necesita de esta variable
+	// Aqui se toma los valores de la pagina para establecer que tan grande puede ser la celda a crear
+	// se toma el tamaño del width, y se le restan 20 mm que seria aproximadamente los margenes
 
-	// align := []string{"L", "C", "L", "R", "R", "R"} // align para queso.csv
+	pageWidth, _ := pdf.GetPageSize()
+	cellWidth := (pageWidth - 20) / float64(columnas)
 
 	for _, line := range tbl {
 
-		// for i, str := range line { // for para queso.csv
-		// 	pdf.CellFormat(25, 7, str, "1", 0, align[i], false, 0, "")
-		// }
+		for _, str := range line {
 
-		for i, str := range line { // for para cities
-			if i != 8 {
-				pdf.CellFormat(20, 7, str, "1", 0, "C", false, 0, "")
-			} else {
-				pdf.CellFormat(45, 7, str, "1", 0, "C", false, 0, "")
-			}
+			pdf.CellFormat(cellWidth, 7, str, "1", 0, "C", false, 0, "")
 
 		}
 		pdf.Ln(-1)
