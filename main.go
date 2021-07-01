@@ -1,8 +1,9 @@
 package main
 
-// programa obtenido de https://appliedgo.net/pdf/
-// este diseño esta pensado solo para un pdf simple de un archivo especifico
-// tiene que ser modificado depende de la cantidad de columnas
+// Programa obtenido de https://appliedgo.net/pdf/
+
+// En este caso se encuentran 2 archivos csv para probar como seria con distinta cantidad de columnas
+// casos a tomar en cuenta como el tamaño del string en la cantidad de columnas, etc
 
 import (
 	"encoding/csv"
@@ -116,6 +117,11 @@ func table(pdf *gofpdf.Fpdf, tbl [][]string, columnas int) *gofpdf.Fpdf {
 
 	// Aqui se toma los valores de la pagina para establecer que tan grande puede ser la celda a crear
 	// se toma el tamaño del width, y se le restan 20 mm que seria aproximadamente los margenes
+
+	// NOTA: los valores pueden salirse de su celda si la info es muy grande,
+	// algo que se puede hacer es crear una lista con tamaños para cada columna
+	// en una columna de 5 hacer  []float64 {20, 30, 25, 20, 20, 50}
+	// esto ya cuando sea necesario y se tenga conocimiento de como es la informacion que se recibira
 
 	pageWidth, _ := pdf.GetPageSize()
 	cellWidth := (pageWidth - 20) / float64(columnas)
