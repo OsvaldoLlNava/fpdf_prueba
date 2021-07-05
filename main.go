@@ -6,10 +6,13 @@ package main
 // casos a tomar en cuenta como el tamaño del string en la cantidad de columnas, etc
 
 import (
+	"bufio"
+	"bytes"
 	"encoding/csv"
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/jung-kurt/gofpdf"
@@ -18,40 +21,56 @@ import (
 func main() {
 	// aqui primero se carga el archivo CSV
 	// la funcion path() solo es un pequeño intermedio para obtener el path de os.Args
-	data := loadCSV(path())
+	data, err := loadCSV(path())
+	if err != nil {
+		log.Printf("Failed loading PDF report: %s\n", err)
+		return
+	}
+	var col int
 
-	col := len(data[0])
+	if len(data[0]) != 0 {
+		col = len(data[0])
+	}
 
 	// una vez tenemos la informacion se crea un documento pdf
-	pdf := newReport()              // creacion del la instancia pdf en la que se trabajara
-	pdf = image(pdf)                // le agregamos una imagen estetica al documento
+	pdf := newReport() // creacion del la instancia pdf en la que se trabajara
+	bytes, docType := imageToBytes("stats.png")
+	insertImageFromBytes(pdf, bytes, docType)
+	// pdf = image(pdf)                // le agregamos una imagen estetica al documento
 	pdf = header(pdf, data[0], col) // se le añade el header a la tabla, los nombres de los datos que tiene
 	pdf = table(pdf, data[1:], col) // se le añaden todos los datos a la tabla
 
 	if pdf.Err() {
-		log.Fatalf("Failed creating PDF report: %s\n", pdf.Error())
+		log.Printf("Failed creating PDF report: %s\n", pdf.Error())
+		return
 	}
 
-	err := savePDF(pdf, "reporte")
+	err = savePDF(pdf, "reporte")
 	if err != nil {
-		log.Fatalf("Cannot save PDF: %s|n", err)
+		log.Printf("Cannot save PDF: %s|n", err)
+		return
 	}
 }
 
-func loadCSV(path string) [][]string {
+func loadCSV(path string) ([][]string, error) {
 	// en este punto se obtiene toda la informacion del CSV,
 	// se abre el archivo, se lee, y se regresan las filas del archivo leido
+
+	var rows [][]string
 	f, err := os.Open(path)
 	if err != nil {
-		log.Fatalf("Cannot open '%s': %s\n", path, err.Error())
+		log.Printf("Cannot open '%s': %s\n", path, err.Error())
+		f.Close()
+		return rows, err
 	}
 	defer f.Close()
 	r := csv.NewReader(f)
-	rows, err := r.ReadAll()
+	rows, err = r.ReadAll()
 	if err != nil {
-		log.Fatalln("Cannot read CSV data:", err.Error())
+		log.Printf("Cannot read CSV data: %s", err.Error())
+		return rows, err
 	}
-	return rows
+	return rows, err
 }
 
 func path() string {
@@ -155,4 +174,62 @@ func image(pdf *gofpdf.Fpdf) *gofpdf.Fpdf {
 func savePDF(pdf *gofpdf.Fpdf, name string) error {
 	fileName := fmt.Sprintf("%s.pdf", name)
 	return pdf.OutputFileAndClose(fileName)
+}
+
+func imageToBytes(path string) ([]byte, string) {
+
+	// Esta funcion toma la imagen de local y la convierte a un []byte para su uso posterior
+	// El motivo de esto es con fines practicos, ya que los servicios podrian mandar la imagen de esta forma
+	// esto es para emular como tendrias que manejar la imagen si te la dan en bytes y no se tiene el archivo en local
+
+	file, err := os.Open(path)
+
+	bytes := make([]byte, 5)
+
+	if err != nil {
+		log.Printf("An error has occurred, Error: %s", err)
+		file.Close()
+		return bytes, ""
+	}
+
+	defer file.Close()
+	nombre := file.Name()
+	partes := strings.Split(nombre, ".")
+	docType := ""
+	if len(partes) > 1 {
+		docType = partes[(len(partes) - 1)]
+	}
+
+	fileInfo, _ := file.Stat()
+	var size int64 = fileInfo.Size()
+	bytes = make([]byte, size)
+
+	buffer := bufio.NewReader(file)
+	_, err = buffer.Read(bytes)
+	if err != nil {
+		log.Printf("Error: %s", err)
+		return bytes, ""
+	}
+
+	return bytes, docType
+}
+
+func insertImageFromBytes(pdf *gofpdf.Fpdf, data []byte, docType string) {
+
+	colocarImagen := true
+	imageData := bytes.NewBuffer(data)
+	if len(data) == 0 || docType == "" {
+		log.Println("Error: No image data or docType miss")
+		colocarImagen = false
+	}
+
+	if colocarImagen {
+		// Se registra la imagen al pdf (solo se registra para su uso posterior)
+		pdf.RegisterImageOptionsReader("Imagen", gofpdf.ImageOptions{ImageType: docType, ReadDpi: false}, imageData)
+
+		// se inserta la imagen, la opcion Image toma de las imagenes registradas, buscando por el nombre que se le dio y agrega esa imagen a la pagina actual
+		pdf.Image("Imagen", 225, 10, 25, 25, false, "", 0, "")
+
+	}
+
 }
